@@ -8,8 +8,8 @@ object Constants {
         "androidx", "android", "java", "kotlin"
     )
     val CLASS_WHITE_LIST = arrayListOf(
-        "com.treasure.monitor.MonitoringLooperPrinter",
-        "com.treasure.monitor.StackCache",
-        "com.treasure.monitor.MethodRecord"
+        "treasurebox.monitor.MonitoringLooperPrinter",
+        "treasurebox.monitor.StackCache",
+        "treasurebox.monitor.MethodRecord"
     )
 }

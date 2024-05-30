@@ -34,7 +34,7 @@ internal class ClassVisitor(nextClassVisitor: ClassVisitor) :
                 visitLdcInsn(methodName)
                 visitMethodInsn(
                     INVOKESTATIC,
-                    "com/treasure/monitor/StackCache",
+                    "treasurebox/monitor/StackCache",
                     "methodEnter",
                     "(Ljava/lang/String;)V",
                     false
@@ -45,7 +45,7 @@ internal class ClassVisitor(nextClassVisitor: ClassVisitor) :
                 visitLdcInsn(methodName)
                 visitMethodInsn(
                     INVOKESTATIC,
-                    "com/treasure/monitor/StackCache",
+                    "treasurebox/monitor/StackCache",
                     "methodExit",
                     "(Ljava/lang/String;)V",
                     false
