@@ -1,0 +1,2 @@
+-keep class treasurebox.monitor.StackCache {*;}
+-keep class treasurebox.monitor.MethodRecord {*;}
