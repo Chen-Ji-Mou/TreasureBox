@@ -19,3 +19,4 @@ dependencyResolutionManagement {
 rootProject.name = "TreasureBox"
 include ':demo'
 include ':treasurebox-core'
+include ':treasurebox-plugin'
