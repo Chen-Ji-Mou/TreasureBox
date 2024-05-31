@@ -2,6 +2,7 @@ plugins {
     id 'groovy'
     id 'org.jetbrains.kotlin.jvm' version '1.9.10'
     id 'java-gradle-plugin'
+    id 'maven-publish'
 }
 
 dependencies {
@@ -11,6 +12,31 @@ dependencies {
     implementation 'com.android.tools.build:gradle-api:8.0.2'
     implementation 'com.android.tools.build:gradle:8.0.2'
     implementation 'org.jetbrains:annotations:16.0.1'
+}
+
+// 生成源码的jar包
+tasks.register('generateSourcesJar', Jar) {
+    archiveClassifier = 'sources'
+    // 设置源码路径
+    from sourceSets.main.java.srcDirs
+}
+
+def groupName = 'com.github.Chen-Ji-Mou.TreasureBox'
+def artifactName = 'treasurebox-plugin'
+def versionNumber = '0.0.1'
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            // 声明以jar包的形式发布
+            from components.java
+            groupId = groupName
+            artifactId = artifactName
+            version = versionNumber
+            // 打包源码，使得使用者可以看到源码
+            afterEvaluate { artifact generateSourcesJar }
+        }
+    }
 }
 
 gradlePlugin {
