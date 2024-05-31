@@ -37,6 +37,12 @@ publishing {
             afterEvaluate { artifact generateSourcesJar }
         }
     }
+    repositories {
+        maven {
+            // 生成的插件位置
+            url = uri('../treasurebox-plugin-repo')
+        }
+    }
 }
 
 gradlePlugin {
