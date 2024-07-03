@@ -10,9 +10,9 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import java.util.EnumMap
 
 /**
- * @author heqinze@skyworth.com
- * @description
- * @date 2023/11/7
+ * @author : chenjimou
+ * @Description : 二维码生成相关工具类
+ * @Date : 2024/06/03
  */
 object QrUtil {
     val HINTS: MutableMap<EncodeHintType, Any?> = EnumMap(

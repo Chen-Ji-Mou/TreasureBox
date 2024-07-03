@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="BlurFrameLayout">
+        <attr name="blur_render_type" format="enum">
+            <enum name="opengl" value="0"/>
+            <enum name="render_script" value="1"/>
+        </attr>
+        <attr name="blur_radius" format="integer" />
+        <attr name="blur_bitmap" format="reference" />
+        <attr name="blur_overlay_color" format="color|reference" />
+        <attr name="corner_radius" format="dimension" />
+        <attr name="border_width" format="dimension" />
+        <attr name="border_color" format="color|reference" />
+    </declare-styleable>
+</resources>

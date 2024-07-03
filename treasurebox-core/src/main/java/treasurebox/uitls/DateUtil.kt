@@ -11,7 +11,6 @@ import java.util.Locale
  * @description 日期相关工具类
  * @date 2024/06/03
  */
-
 object DateUtil {
     /**
      * 获取当前系统时间，按照 --:-- 的格式进行format 返回

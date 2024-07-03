@@ -6,17 +6,15 @@ import android.animation.AnimatorSet
 import android.animation.Keyframe
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
-import android.os.Build
 import android.view.KeyEvent
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import treasurebox.uitls.DensityUtil.dp2px
-import treasurebox.uitls.UiCompat.CompatAnimatorUpdateListener
 
 /**
  * @author chenjimou
- * @description v1.0
- * @date
+ * @description 动画相关工具类
+ * @date 2024/06/03
  */
 object AnimUtil {
     private var shakeAnim: ObjectAnimator? = null

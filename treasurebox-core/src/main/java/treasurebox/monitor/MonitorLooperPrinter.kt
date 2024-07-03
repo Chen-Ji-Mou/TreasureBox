@@ -9,7 +9,7 @@ import treasurebox.monitor.MonitorHelper.TAG
  * @description TODO
  * @date 2024/5/30
  */
-class MonitorLooperPrinter private constructor() : Printer {
+internal class MonitorLooperPrinter private constructor() : Printer {
     private var mEnterMillis: Long = 0L
 
     override fun println(log: String?) {

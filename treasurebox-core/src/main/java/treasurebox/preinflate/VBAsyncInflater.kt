@@ -14,7 +14,7 @@ import java.util.concurrent.ArrayBlockingQueue
  * @description 异步加载Inflater，基于AsyncLayoutInflater修改
  * @date 2023/11/28
  */
-class VBAsyncInflater private constructor() {
+internal class VBAsyncInflater private constructor() {
     private lateinit var mInflateThread: InflateThread
     private val mHandler: Handler
 

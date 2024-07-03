@@ -9,7 +9,7 @@ import java.util.LinkedList
  * @description 已加载ViewBinding的缓存
  * @date 2023/11/28
  */
-class VBInflateCache<Binding : ViewBinding> {
+internal class VBInflateCache<Binding : ViewBinding> {
     private val mViewBindingPools = LinkedList<SoftReference<Binding>>()
     fun getViewBindingPoolAvailableCount(): Int {
         val it = mViewBindingPools.iterator()
