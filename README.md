@@ -6,10 +6,10 @@
 
 ## 视图组件
 
-(高斯模糊实现方案——BlurFrameLayout)[]
+[高斯模糊实现方案——BlurFrameLayout](https://github.com/Chen-Ji-Mou/TreasureBox/blob/main/treasurebox-core/src/main/java/treasurebox/blur/README.md)
 
 ## 性能工具
 
-(RecyclerView滑动卡顿解决方案——异步inflate)[]
+[RecyclerView滑动卡顿解决方案——异步inflate]()
 
-(仿腾讯Matrix TraceCanary——实现logcat直观实时卡顿监控)[]
+[仿腾讯Matrix TraceCanary——实现logcat直观实时卡顿监控]()
