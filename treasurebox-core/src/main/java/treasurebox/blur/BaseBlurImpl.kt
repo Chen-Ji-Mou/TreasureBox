@@ -2,7 +2,6 @@ package treasurebox.blur
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.ColorInt
 
@@ -19,5 +18,6 @@ internal interface BaseBlurImpl {
     fun refreshBlurOverlay()
     fun setCornerRadius(radius: Float)
     fun setBorder(width: Float, @ColorInt color: Int = Color.TRANSPARENT)
+    fun showBlurOrNot(isShow: Boolean)
     fun release()
 }

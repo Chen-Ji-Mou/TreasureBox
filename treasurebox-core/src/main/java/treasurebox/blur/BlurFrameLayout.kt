@@ -16,6 +16,7 @@ import androidx.annotation.RequiresApi
 import treasurebox.blur.gl.GLBlurImpl
 import treasurebox.blur.rs.RSBlurImpl
 import treasurebox.core.R
+import kotlin.math.max
 
 /**
  * @author chenjimou
@@ -135,6 +136,45 @@ class BlurFrameLayout @JvmOverloads constructor(
 
     fun setBorder(width: Float, color: Int = Color.TRANSPARENT) {
         blurImpl.setBorder(width, color)
+    }
+
+    fun showBlurOrNot(isShow: Boolean) {
+        blurImpl.showBlurOrNot(isShow)
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+//        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        val childCount = childCount
+        var maxWidth = 0
+        var maxHeight = 0
+
+        // Calculate maximum width and height excluding the first child
+        for (i in 1 until childCount) {
+            val child = getChildAt(i)
+            measureChildWithMargins(child, widthMeasureSpec, 0, heightMeasureSpec, 0)
+            maxWidth = max(maxWidth.toDouble(), child.measuredWidth.toDouble()).toInt()
+            maxHeight = max(maxHeight.toDouble(), child.measuredHeight.toDouble()).toInt()
+        }
+
+        // Measure the first child with exact maximum width and height
+        if (childCount > 0) {
+            val firstChild = getChildAt(0)
+            // Measure first child with exact size of max width and height
+            val childWidthMeasureSpec = MeasureSpec.makeMeasureSpec(maxWidth, MeasureSpec.EXACTLY)
+            val childHeightMeasureSpec = MeasureSpec.makeMeasureSpec(maxHeight, MeasureSpec.EXACTLY)
+            firstChild.measure(childWidthMeasureSpec, childHeightMeasureSpec)
+        }
+
+        // Add padding to calculated dimensions
+        maxWidth += paddingLeft + paddingRight
+        maxHeight += paddingTop + paddingBottom
+
+        // Resolve the size with constraints
+        maxWidth = resolveSize(maxWidth, widthMeasureSpec)
+        maxHeight = resolveSize(maxHeight, heightMeasureSpec)
+
+        // Set the final measured dimensions
+        setMeasuredDimension(maxWidth, maxHeight)
     }
 
     override fun onDetachedFromWindow() {

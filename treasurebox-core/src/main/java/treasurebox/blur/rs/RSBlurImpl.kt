@@ -14,7 +14,6 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout.LayoutParams
 import androidx.core.view.isVisible
 import treasurebox.blur.BaseBlurImpl
 import treasurebox.blur.rs.impl.AndroidStockRSImpl
@@ -42,30 +41,46 @@ internal class RSBlurImpl @JvmOverloads constructor(
     private val mRectFDst = RectF()
     private val mCornerPath = Path()
     private val mOverlayPaint: Paint = Paint().also {
+        it.color = Color.TRANSPARENT
         it.isAntiAlias = true
     }
     private val mBorderPaint: Paint = Paint().also {
         it.style = Paint.Style.STROKE
         it.isAntiAlias = true
     }
-    private val mCornerRadii = floatArrayOf(DEFAULT_RADIUS, DEFAULT_RADIUS, DEFAULT_RADIUS, DEFAULT_RADIUS)
+    private val mCornerRadii =
+        floatArrayOf(DEFAULT_RADIUS, DEFAULT_RADIUS, DEFAULT_RADIUS, DEFAULT_RADIUS)
     private var mCornerRids: FloatArray? = null
     private var mOverlayColor: Int = Color.TRANSPARENT
+
     /**
      * default 10dp (0 < r <= 25)
      */
     private var mBlurRadius: Float = 10.0f
-    private var mNeedDraw: Boolean = false
-    private var mNeedPrepare: Boolean = false
+    private var mNeedRefreshBlur: Boolean = false
+    private var mNeedPrepare: Boolean = true
+    private var mNeedDrawBorder: Boolean = false
+    private var mOnlyBlurBitmap: Boolean = false
 
     override fun init(parent: ViewGroup) {
         this.mParent = parent
         this.mRSImpl = getBlurImpl()
-        parent.addView(this, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        parent.addView(
+            this, 0, ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
     }
 
     override fun setBlurBitmap(bitmap: Bitmap) {
-        // TODO 仅模糊传入的bitmap，不处理decorView
+        if (mBitmapToBlur != null) {
+            mBitmapToBlur?.recycle()
+            mBitmapToBlur = null
+            mBitmapToBlurCanvas = null
+        }
+        mBitmapToBlur = bitmap
+        mOnlyBlurBitmap = true
+        refreshBlurOverlay()
     }
 
     override fun setBlurRadius(radius: Float) {
@@ -78,13 +93,17 @@ internal class RSBlurImpl @JvmOverloads constructor(
     }
 
     override fun setBlurOverlayColor(color: Int) {
-        this.mOverlayColor = color
-        refreshBlurOverlay()
+        mOverlayPaint.color = color
+        invalidate()
     }
 
     override fun refreshBlurOverlay() {
-        this.mNeedDraw = true
-        invalidate()
+        if (!mNeedPrepare) {
+            mRSImpl.release()
+            mNeedPrepare = true
+        }
+        mNeedRefreshBlur = true
+        requestLayout()
     }
 
     override fun setCornerRadius(radius: Float) {
@@ -92,13 +111,18 @@ internal class RSBlurImpl @JvmOverloads constructor(
             mCornerRadii[index] = radius
         }
         initCornerRids()
-        refreshBlurOverlay()
+        invalidate()
     }
 
     override fun setBorder(width: Float, color: Int) {
+        mNeedDrawBorder = width != 0.0f && color != Color.TRANSPARENT
         mBorderPaint.strokeWidth = DensityUtil.dp2px(width)
         mBorderPaint.color = color
-        refreshBlurOverlay()
+        invalidate()
+    }
+
+    override fun showBlurOrNot(isShow: Boolean) {
+        this.visibility = if (isShow) VISIBLE else INVISIBLE
     }
 
     override fun release() {
@@ -117,8 +141,8 @@ internal class RSBlurImpl @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        Log.d(TAG, "onAttachedToWindow")
         mDecorView = getActivityDecorView()
+        Log.d(TAG, "mDecorView = $mDecorView")
     }
 
     private fun getActivityDecorView(): View? {
@@ -195,10 +219,14 @@ internal class RSBlurImpl @JvmOverloads constructor(
     private fun initCornerRids() {
         if (mCornerRids == null) {
             mCornerRids = floatArrayOf(
-                mCornerRadii[0], mCornerRadii[0],
-                mCornerRadii[1], mCornerRadii[1],
-                mCornerRadii[2], mCornerRadii[2],
-                mCornerRadii[3], mCornerRadii[3]
+                mCornerRadii[0],
+                mCornerRadii[0],
+                mCornerRadii[1],
+                mCornerRadii[1],
+                mCornerRadii[2],
+                mCornerRadii[2],
+                mCornerRadii[3],
+                mCornerRadii[3]
             )
         } else {
             mCornerRids?.set(0, mCornerRadii[0])
@@ -214,15 +242,17 @@ internal class RSBlurImpl @JvmOverloads constructor(
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
-        if (mNeedDraw) {
+        if (mNeedRefreshBlur && width > 0 && height > 0) {
             if (mBitmapToBlur == null || mBitmapToBlurCanvas == null || mBlurredBitmap == null) {
-                this.mNeedPrepare = true
+                mNeedPrepare = true
             }
 
             if (mBitmapToBlur == null) {
                 mBitmapToBlur = Bitmap.createBitmap(
                     width, height, Bitmap.Config.ARGB_8888
                 )
+            } else if (mBitmapToBlur?.width != width || mBitmapToBlur?.height != height) {
+                mBitmapToBlur = Bitmap.createScaledBitmap(mBitmapToBlur!!, width, height, false)
             }
 
             if (mBitmapToBlurCanvas == null) {
@@ -237,84 +267,100 @@ internal class RSBlurImpl @JvmOverloads constructor(
 
             if (mNeedPrepare) {
                 if (mRSImpl.prepare(context, mBitmapToBlur!!, mBlurRadius)) {
-                    this.mNeedPrepare = false
+                    mNeedPrepare = false
                 } else {
-                    this.mNeedDraw = false
                     return
                 }
             }
 
-            val locations = IntArray(2)
-            mDecorView?.getLocationOnScreen(locations)
-            var x = -locations[0]
-            var y = -locations[1]
-            getLocationOnScreen(locations)
-            x += locations[0]
-            y += locations[1]
+            Log.d(TAG, "mNeedPrepare = $mNeedPrepare, mOnlyBlurBitmap = $mOnlyBlurBitmap")
 
-            Log.d(TAG, "onLayout [$x,$y]")
+            if (!mOnlyBlurBitmap) {
+                val locations = IntArray(2)
+                mDecorView?.getLocationOnScreen(locations)
+                var x = -locations[0]
+                var y = -locations[1]
+                getLocationOnScreen(locations)
+                x += locations[0]
+                y += locations[1]
 
-            this.visibility = INVISIBLE
+                mBitmapToBlur!!.eraseColor(mOverlayColor and 0xffffff)
 
-            if (mParent.childCount > 1) {
-                for (i in 1 until mParent.childCount) {
-                    val childView = mParent.getChildAt(i)
-                    if (childView.isVisible) {
-                        childView.visibility = INVISIBLE
+                val hideSelf: Boolean = visibility == VISIBLE
+                if (hideSelf) {
+                    visibility = INVISIBLE
+                }
+
+                val indexArray = Array(mParent.childCount) { false }
+                if (mParent.childCount > 1) {
+                    for (i in 1 until mParent.childCount) {
+                        val childView = mParent.getChildAt(i)
+                        if (childView.isVisible) {
+                            indexArray[i] = true
+                            childView.visibility = INVISIBLE
+                        }
                     }
                 }
-            }
 
-            val rc = mBitmapToBlurCanvas!!.save()
-            try {
-                mBitmapToBlurCanvas!!.translate((-x).toFloat(), (-y).toFloat())
-                if (mDecorView?.background != null) {
-                    mDecorView?.background?.draw(mBitmapToBlurCanvas!!)
+                val rc = mBitmapToBlurCanvas!!.save()
+                try {
+                    mBitmapToBlurCanvas!!.translate((-x).toFloat(), (-y).toFloat())
+                    if (mDecorView?.background != null) {
+                        mDecorView?.background?.draw(mBitmapToBlurCanvas!!)
+                    }
+                    mDecorView?.draw(mBitmapToBlurCanvas!!)
+                } catch (e: Throwable) {
+                    Log.e(TAG, Log.getStackTraceString(e))
+                } finally {
+                    mBitmapToBlurCanvas!!.restoreToCount(rc)
                 }
-                mDecorView?.draw(mBitmapToBlurCanvas!!)
-            } catch (e: Throwable) {
-                Log.d(TAG, Log.getStackTraceString(e))
-            } finally {
-                mBitmapToBlurCanvas!!.restoreToCount(rc)
-            }
 
-            if (mParent.childCount > 1) {
-                for (i in 1 until mParent.childCount) {
-                    val childView = mParent.getChildAt(i)
-                    if (!childView.isVisible) {
-                        childView.visibility = VISIBLE
+                if (mParent.childCount > 1) {
+                    for (i in 1 until mParent.childCount) {
+                        if (indexArray[i]) {
+                            mParent.getChildAt(i).visibility = VISIBLE
+                        }
                     }
                 }
-            }
 
-            this.visibility = VISIBLE
+                if (hideSelf) {
+                    visibility = VISIBLE
+                }
+            }
 
             mRSImpl.blur(mBitmapToBlur!!, mBlurredBitmap!!)
+
+            if (mOnlyBlurBitmap) {
+                mOnlyBlurBitmap = false
+            }
+
+            mNeedRefreshBlur = false
         }
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        if (mNeedDraw) {
-            //圆角的半径，依次为左上角xy半径，右上角，右下角，左下角
-            mRectFDst.right = width.toFloat()
-            mRectFDst.bottom = height.toFloat()
+        Log.d(TAG, "onDraw")
+        //圆角的半径，依次为左上角xy半径，右上角，右下角，左下角
+        mRectFDst.right = width.toFloat()
+        mRectFDst.bottom = height.toFloat()
 
-            /*向路径中添加圆角矩形。radii数组定义圆角矩形的四个圆角的x,y半径。radii长度必须为8*/
-            //Path.Direction.CW：clockwise ，沿顺时针方向绘制,Path.Direction.CCW：counter-clockwise ，沿逆时针方向绘制
-            mCornerRids?.let {
-                mCornerPath.addRoundRect(mRectFDst, it, Path.Direction.CW)
-                mCornerPath.close()
-                canvas.clipPath(mCornerPath)
-            }
+        /*向路径中添加圆角矩形。radii数组定义圆角矩形的四个圆角的x,y半径。radii长度必须为8*/
+        //Path.Direction.CW：clockwise ，沿顺时针方向绘制,Path.Direction.CCW：counter-clockwise ，沿逆时针方向绘制
+        mCornerRids?.let {
+            mCornerPath.addRoundRect(mRectFDst, it, Path.Direction.CW)
+            mCornerPath.close()
+            canvas.clipPath(mCornerPath)
+        }
 
-            mRectSrc.right = mBlurredBitmap!!.width
-            mRectSrc.bottom = mBlurredBitmap!!.height
-            canvas.drawBitmap(mBlurredBitmap!!, mRectSrc, mRectFDst, null)
-
-            mOverlayPaint.color = mOverlayColor
+        mBlurredBitmap?.let { bitmap ->
+            mRectSrc.right = bitmap.getWidth()
+            mRectSrc.bottom = bitmap.getHeight()
+            canvas.drawBitmap(bitmap, mRectSrc, mRectFDst, null)
             canvas.drawRect(mRectFDst, mOverlayPaint)
+        }
 
+        if (mNeedDrawBorder) {
             canvas.drawPath(mCornerPath, mBorderPaint)
         }
     }

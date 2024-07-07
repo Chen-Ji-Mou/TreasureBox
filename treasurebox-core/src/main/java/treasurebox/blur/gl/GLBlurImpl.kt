@@ -51,7 +51,7 @@ internal class GLBlurImpl @JvmOverloads constructor(
 
     override fun init(parent: ViewGroup) {
         this.parent = parent
-        this.addView(this, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        this.addView(renderView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         renderView.run {
             visibility = INVISIBLE
 
@@ -66,7 +66,11 @@ internal class GLBlurImpl @JvmOverloads constructor(
             overlayView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         )
         overlayView.visibility = INVISIBLE
-        parent.addView(this, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        parent.addView(
+            this, 0, ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
     }
 
     override fun setBlurBitmap(bitmap: Bitmap) {
@@ -124,6 +128,10 @@ internal class GLBlurImpl @JvmOverloads constructor(
         refreshBlurOverlay()
     }
 
+    override fun showBlurOrNot(isShow: Boolean) {
+        this.visibility = if (isShow) VISIBLE else INVISIBLE
+    }
+
     override fun release() {
         render.release()
         if (overlayBitmap != null) {
@@ -168,7 +176,7 @@ internal class GLBlurImpl @JvmOverloads constructor(
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
-        if (needOverlayDraw) {
+        if (needOverlayDraw && width > 0 && height > 0) {
             if (overlayBitmap == null) {
                 overlayBitmap = Bitmap.createBitmap(
                     width, height, Bitmap.Config.ARGB_8888
@@ -189,18 +197,20 @@ internal class GLBlurImpl @JvmOverloads constructor(
 
             Log.d(TAG, "onLayout [$x,$y]")
 
-            if (renderView.isVisible) {
+            val hideSelf: Boolean = visibility == VISIBLE
+            if (hideSelf && renderView.isVisible) {
                 renderView.visibility = INVISIBLE
             }
-
-            if (overlayView.isVisible) {
+            if (hideSelf && overlayView.isVisible) {
                 overlayView.visibility = INVISIBLE
             }
 
+            val indexArray = Array(parent.childCount) { false }
             if (parent.childCount > 1) {
                 for (i in 1 until parent.childCount) {
                     val childView = parent.getChildAt(i)
                     if (childView.isVisible) {
+                        indexArray[i] = true
                         childView.visibility = INVISIBLE
                     }
                 }
@@ -221,14 +231,18 @@ internal class GLBlurImpl @JvmOverloads constructor(
 
             if (parent.childCount > 1) {
                 for (i in 1 until parent.childCount) {
-                    val childView = parent.getChildAt(i)
-                    if (!childView.isVisible) {
-                        childView.visibility = VISIBLE
+                    if (indexArray[i]) {
+                        parent.getChildAt(i).visibility = VISIBLE
                     }
                 }
             }
 
-            overlayView.visibility = VISIBLE
+            if (hideSelf && !renderView.isVisible) {
+                renderView.visibility = VISIBLE
+            }
+            if (hideSelf && !overlayView.isVisible) {
+                overlayView.visibility = VISIBLE
+            }
 
             setBlurBitmap(overlayBitmap!!)
 
