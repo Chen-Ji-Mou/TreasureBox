@@ -12,6 +12,5 @@ import treasurebox.monitor.MonitorHelper
 class MyApplication : Application() {
     override fun attachBaseContext(base: Context?) {
         super.attachBaseContext(base)
-        MonitorHelper.monitoringUIThread()
     }
 }

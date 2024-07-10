@@ -6,6 +6,7 @@ import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
@@ -37,6 +38,7 @@ internal class RSBlurImpl @JvmOverloads constructor(
     private var mBitmapToBlur: Bitmap? = null
     private var mBitmapToBlurCanvas: Canvas? = null
     private var mBlurredBitmap: Bitmap? = null
+    private var mTargetBlurBitmap: Bitmap? = null
     private val mRectSrc = Rect()
     private val mRectFDst = RectF()
     private val mCornerPath = Path()
@@ -73,12 +75,15 @@ internal class RSBlurImpl @JvmOverloads constructor(
     }
 
     override fun setBlurBitmap(bitmap: Bitmap) {
-        if (mBitmapToBlur != null) {
-            mBitmapToBlur?.recycle()
-            mBitmapToBlur = null
-            mBitmapToBlurCanvas = null
+        if (mBitmapToBlur != null && mBitmapToBlurCanvas != null) {
+            val matrix = Matrix()
+            val scaleX = mBitmapToBlur!!.width.toFloat() / bitmap.width.toFloat()
+            val scaleY = mBitmapToBlur!!.height.toFloat() / bitmap.height.toFloat()
+            matrix.postScale(scaleX, scaleY)
+            mBitmapToBlurCanvas!!.drawBitmap(bitmap, matrix, null)
+        } else {
+            mTargetBlurBitmap = bitmap
         }
-        mBitmapToBlur = bitmap
         mOnlyBlurBitmap = true
         refreshBlurOverlay()
     }
@@ -134,6 +139,10 @@ internal class RSBlurImpl @JvmOverloads constructor(
         if (mBlurredBitmap != null) {
             mBlurredBitmap?.recycle()
             mBlurredBitmap = null
+        }
+        if (mTargetBlurBitmap != null) {
+            mTargetBlurBitmap?.recycle()
+            mTargetBlurBitmap = null
         }
         mRSImpl.release()
         mDecorView = null
@@ -251,8 +260,14 @@ internal class RSBlurImpl @JvmOverloads constructor(
                 mBitmapToBlur = Bitmap.createBitmap(
                     width, height, Bitmap.Config.ARGB_8888
                 )
-            } else if (mBitmapToBlur?.width != width || mBitmapToBlur?.height != height) {
-                mBitmapToBlur = Bitmap.createScaledBitmap(mBitmapToBlur!!, width, height, false)
+            } else if (mTargetBlurBitmap != null) {
+                val matrix = Matrix()
+                val scaleX = mBitmapToBlur!!.width.toFloat() / mTargetBlurBitmap!!.width.toFloat()
+                val scaleY = mBitmapToBlur!!.height.toFloat() / mTargetBlurBitmap!!.height.toFloat()
+                matrix.postScale(scaleX, scaleY)
+                mBitmapToBlurCanvas!!.drawBitmap(mTargetBlurBitmap!!, matrix, null)
+                mTargetBlurBitmap!!.recycle()
+                mTargetBlurBitmap = null
             }
 
             if (mBitmapToBlurCanvas == null) {

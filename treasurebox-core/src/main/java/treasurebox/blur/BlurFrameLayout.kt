@@ -143,7 +143,6 @@ class BlurFrameLayout @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-//        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val childCount = childCount
         var maxWidth = 0
         var maxHeight = 0
@@ -156,6 +155,14 @@ class BlurFrameLayout @JvmOverloads constructor(
             maxHeight = max(maxHeight.toDouble(), child.measuredHeight.toDouble()).toInt()
         }
 
+        // Add padding to calculated dimensions
+        maxWidth += paddingLeft + paddingRight
+        maxHeight += paddingTop + paddingBottom
+
+        // Resolve the size with constraints
+        maxWidth = resolveSize(maxWidth, widthMeasureSpec)
+        maxHeight = resolveSize(maxHeight, heightMeasureSpec)
+
         // Measure the first child with exact maximum width and height
         if (childCount > 0) {
             val firstChild = getChildAt(0)
@@ -164,14 +171,6 @@ class BlurFrameLayout @JvmOverloads constructor(
             val childHeightMeasureSpec = MeasureSpec.makeMeasureSpec(maxHeight, MeasureSpec.EXACTLY)
             firstChild.measure(childWidthMeasureSpec, childHeightMeasureSpec)
         }
-
-        // Add padding to calculated dimensions
-        maxWidth += paddingLeft + paddingRight
-        maxHeight += paddingTop + paddingBottom
-
-        // Resolve the size with constraints
-        maxWidth = resolveSize(maxWidth, widthMeasureSpec)
-        maxHeight = resolveSize(maxHeight, heightMeasureSpec)
 
         // Set the final measured dimensions
         setMeasuredDimension(maxWidth, maxHeight)

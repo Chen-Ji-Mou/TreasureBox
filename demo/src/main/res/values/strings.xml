@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">TreasureBox</string>
+    <string name="blur_activity">BlurActivity</string>
 </resources>
