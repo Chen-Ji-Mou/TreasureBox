@@ -23,7 +23,7 @@ tasks.register('generateSourcesJar', Jar) {
 
 def groupName = 'com.github.Chen-Ji-Mou.TreasureBox'
 def artifactName = 'treasurebox-plugin'
-def versionNumber = '0.0.2'
+def versionNumber = '0.0.4'
 
 publishing {
     publications {
