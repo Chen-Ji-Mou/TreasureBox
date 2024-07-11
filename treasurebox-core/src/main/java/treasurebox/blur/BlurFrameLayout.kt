@@ -32,7 +32,7 @@ class BlurFrameLayout @JvmOverloads constructor(
     init {
         val typedArray = context.obtainStyledAttributes(attrs, R.styleable.BlurFrameLayout)
 
-        val type = typedArray.getInt(R.styleable.BlurFrameLayout_blur_render_type, 0)
+        val type = typedArray.getInt(R.styleable.BlurFrameLayout_blur_render_type, 1)
         this.blurRenderType = when (type) {
             1 -> BlurRenderType.RENDERSCRIPT
             else -> BlurRenderType.OPENGL

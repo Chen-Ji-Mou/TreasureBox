@@ -85,6 +85,10 @@ internal class RSBlurImpl @JvmOverloads constructor(
             mTargetBlurBitmap = bitmap
         }
         mOnlyBlurBitmap = true
+        if (!mNeedPrepare) {
+            mRSImpl.release()
+            mNeedPrepare = true
+        }
         refreshBlurOverlay()
     }
 
@@ -93,6 +97,10 @@ internal class RSBlurImpl @JvmOverloads constructor(
             this.mBlurRadius = 25.0f
         } else {
             this.mBlurRadius = radius
+        }
+        if (!mNeedPrepare) {
+            mRSImpl.release()
+            mNeedPrepare = true
         }
         refreshBlurOverlay()
     }
@@ -103,10 +111,6 @@ internal class RSBlurImpl @JvmOverloads constructor(
     }
 
     override fun refreshBlurOverlay() {
-        if (!mNeedPrepare) {
-            mRSImpl.release()
-            mNeedPrepare = true
-        }
         mNeedRefreshBlur = true
         requestLayout()
     }
@@ -280,6 +284,8 @@ internal class RSBlurImpl @JvmOverloads constructor(
                 )
             }
 
+            Log.d(TAG, "mNeedPrepare = $mNeedPrepare, mOnlyBlurBitmap = $mOnlyBlurBitmap")
+
             if (mNeedPrepare) {
                 if (mRSImpl.prepare(context, mBitmapToBlur!!, mBlurRadius)) {
                     mNeedPrepare = false
@@ -287,8 +293,6 @@ internal class RSBlurImpl @JvmOverloads constructor(
                     return
                 }
             }
-
-            Log.d(TAG, "mNeedPrepare = $mNeedPrepare, mOnlyBlurBitmap = $mOnlyBlurBitmap")
 
             if (!mOnlyBlurBitmap) {
                 val locations = IntArray(2)
@@ -381,7 +385,7 @@ internal class RSBlurImpl @JvmOverloads constructor(
     }
 
     companion object {
-        private val TAG = this::class.java.simpleName
+        private val TAG = RSBlurImpl::class.java.simpleName
         private const val DEFAULT_RADIUS = 0.0f
         private var BLUR_IMPL: Int = 0
     }
