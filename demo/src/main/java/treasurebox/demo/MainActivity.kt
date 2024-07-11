@@ -11,6 +11,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
+        binding.preInflateBtn.setOnClickListener {
+            startActivity(Intent(this@MainActivity, PreInflateActivity::class.java))
+        }
         binding.blurBtn.setOnClickListener {
             startActivity(Intent(this@MainActivity, BlurActivity::class.java))
         }

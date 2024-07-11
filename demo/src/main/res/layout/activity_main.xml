@@ -13,9 +13,17 @@
         android:orientation="vertical">
 
         <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/pre_inflate_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/pre_inflate_activity" />
+
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/blur_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:text="@string/blur_activity" />
 
     </LinearLayout>
