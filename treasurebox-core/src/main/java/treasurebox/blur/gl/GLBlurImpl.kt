@@ -10,6 +10,7 @@ import android.graphics.Outline
 import android.graphics.drawable.GradientDrawable
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
+import android.opengl.GLU
 import android.os.Build
 import android.util.AttributeSet
 import android.util.DisplayMetrics
@@ -32,7 +33,7 @@ import javax.microedition.khronos.opengles.GL10
 
 /**
  * @author chenjimou
- * @description TODO
+ * @description 高斯模糊openGL实现类
  * @date 2024/7/2
  */
 internal class GLBlurImpl @JvmOverloads constructor(
@@ -51,7 +52,7 @@ internal class GLBlurImpl @JvmOverloads constructor(
 
     override fun init(parent: ViewGroup) {
         this.parent = parent
-        this.addView(renderView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        this.addView(renderView)
         renderView.run {
             visibility = INVISIBLE
 
@@ -62,9 +63,7 @@ internal class GLBlurImpl @JvmOverloads constructor(
             setRenderer(render)
             renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
         }
-        this.addView(
-            overlayView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-        )
+        this.addView(overlayView)
         overlayView.visibility = INVISIBLE
         parent.addView(
             this, 0, ViewGroup.LayoutParams(
@@ -256,6 +255,8 @@ internal class GLBlurImpl @JvmOverloads constructor(
 }
 
 private class GLBlurRender(private val context: Context) : GLSurfaceView.Renderer {
+    private val screenWidth: Float
+    private val screenHeight: Float
     private var imageTextureRef: Int = GLHelper.NO_TEXTURE
     private val position = floatArrayOf(
         -1.0f, -1.0f,
@@ -282,12 +283,23 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
     }
     private var imageTextureId: Int = 0
     private var blurRadiusId = 0
+    private var screenWidthId: Int = 0
+    private var screenHeightId: Int = 0
 
     private var bitmap: Bitmap? = null
     private var blurRadius: Float = 10.0f
 
     private val runOnInit = LinkedList<Runnable>()
     private val runOnDraw = LinkedList<Runnable>()
+
+    init {
+        val displayMetrics = DisplayMetrics()
+        (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.getRealMetrics(
+            displayMetrics
+        )
+        screenWidth = displayMetrics.widthPixels.toFloat()
+        screenHeight = displayMetrics.heightPixels.toFloat()
+    }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         val vertexCodeStr = GLHelper.loadRaw(context.resources, R.raw.blur_vertex)
@@ -301,29 +313,32 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
         texturePositionId = GLES30.glGetAttribLocation(programId, "inputTexturePosition")
         imageTextureId = GLES30.glGetUniformLocation(programId, "inputImageTexture")
         blurRadiusId = GLES30.glGetUniformLocation(programId, "blurRadius")
+        screenWidthId = GLES30.glGetUniformLocation(programId, "screenWidth")
+        screenHeightId = GLES30.glGetUniformLocation(programId, "screenHeight")
 
         synchronized(runOnInit) {
             while (!runOnInit.isEmpty()) {
                 runOnInit.removeFirst().run()
             }
         }
+
+        val error = GLES30.glGetError()
+        if (error != GLES30.GL_NO_ERROR) {
+            Log.e(TAG, "appear error -> " + GLU.gluErrorString(error))
+        }
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+        Log.d(TAG, "onSurfaceChanged $width $height")
+
         GLES30.glViewport(0, 0, width, height)
+        GLES30.glUniform1f(screenWidthId, screenWidth)
+        GLES30.glUniform1f(screenHeightId, screenHeight)
 
-        val displayMetrics = DisplayMetrics()
-        (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.getRealMetrics(
-            displayMetrics
-        )
-
-        Log.d(TAG, "onSurfaceChanged ${displayMetrics.widthPixels} ${displayMetrics.heightPixels}")
-
-        val screenWidthId = GLES30.glGetUniformLocation(programId, "screenWidth")
-        GLES30.glUniform1f(screenWidthId, displayMetrics.widthPixels.toFloat())
-
-        val screenHeightId = GLES30.glGetUniformLocation(programId, "screenHeight")
-        GLES30.glUniform1f(screenHeightId, displayMetrics.heightPixels.toFloat())
+        val error = GLES30.glGetError()
+        if (error != GLES30.GL_NO_ERROR) {
+            Log.e(TAG, "appear error -> " + GLU.gluErrorString(error))
+        }
     }
 
     override fun onDrawFrame(gl: GL10?) {
@@ -361,6 +376,11 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
             GLES30.glDisableVertexAttribArray(texturePositionId)
             GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0)
         }
+
+        val error = GLES30.glGetError()
+        if (error != GLES30.GL_NO_ERROR) {
+            Log.e(TAG, "appear error -> " + GLU.gluErrorString(error))
+        }
     }
 
     fun setBlurBitmap(bitmap: Bitmap?) {
@@ -381,7 +401,8 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
     }
 
     fun setBlurRadius(radius: Float) {
-        this.blurRadius = radius
+        // 最大模糊半径为10像素
+        this.blurRadius = if (radius <= 10.0f) radius else 10.0f
         if (!isInitialized) {
             synchronized(runOnInit) {
                 if (!runOnInit.contains(setBlurRadiusTask)) {
@@ -415,6 +436,8 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
         texturePositionId = 0
         imageTextureId = 0
         blurRadiusId = 0
+        screenWidthId = 0
+        screenHeightId = 0
     }
 
     fun release() {
@@ -437,7 +460,7 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
     }
 
     private val setBlurRadiusTask = Runnable {
-        GLES30.glUniform1f(blurRadiusId, blurRadius * 1.5f)
+        GLES30.glUniform1f(blurRadiusId, blurRadius)
     }
 
     companion object {

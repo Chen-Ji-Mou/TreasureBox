@@ -26,7 +26,7 @@ import treasurebox.uitls.DensityUtil
 
 /**
  * @author chenjimou
- * @description TODO
+ * @description 高斯模糊RenderScript实现类
  * @date 2024/7/2
  */
 internal class RSBlurImpl @JvmOverloads constructor(

@@ -12,6 +12,11 @@ import java.io.InputStream
 import java.nio.Buffer
 import java.nio.IntBuffer
 
+/**
+ * @author chenjimou
+ * @description openGL工具类
+ * @date 2024/7/2
+ */
 internal object GLHelper {
     private val TAG = this::class.java.simpleName
     const val NO_TEXTURE: Int = -1
@@ -64,13 +69,6 @@ internal object GLHelper {
         return ""
     }
 
-    /**
-     * https://upload-images.jianshu.io/upload_images/1791669-8f5d5ad196aaa27c.jpeg?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp
-     *
-     * @param type
-     * @param codeStr
-     * @return
-     */
     private fun loadShader(type: Int, codeStr: String): Int {
         //1. 根据类型（顶点着色器、片元着色器）创建着色器，拿到着色器句柄
         val shader = GLES20.glCreateShader(type)
@@ -79,6 +77,7 @@ internal object GLHelper {
         if (shader > 0) {
             //2. 设置着色器代码 ，shader句柄和code进行绑定
             GLES20.glShaderSource(shader, codeStr)
+
             //3. 编译着色器，
             GLES20.glCompileShader(shader)
 
@@ -100,19 +99,21 @@ internal object GLHelper {
     fun loadProgram(verCode: String, fragmentCode: String): Int {
         //1. 创建Shader程序，获取到program句柄
         val programId = GLES20.glCreateProgram()
-
         if (programId == 0) {
             val errorCode = GLES20.glGetError()
             Log.e(TAG, "glCreateProgram : errorCode = $errorCode")
             return 0
         }
+
         //2. 根据着色器语言类型和代码，attach着色器
         val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, verCode)
         val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentCode)
         GLES20.glAttachShader(programId, vertexShader)
         GLES20.glAttachShader(programId, fragmentShader)
+
         //3. 链接
         GLES20.glLinkProgram(programId)
+
         //4. 使用
         GLES20.glUseProgram(programId)
 
@@ -124,7 +125,7 @@ internal object GLHelper {
         val status = IntArray(1)
         GLES20.glGetProgramiv(programId, GLES20.GL_LINK_STATUS, status, 0)
         if (status[0] <= 0) {
-            Log.d(TAG, "glLinkProgram : Linking Failed")
+            Log.e(TAG, "glLinkProgram : error -> " + GLES20.glGetProgramInfoLog(programId))
             return 0
         }
         GLES20.glDeleteShader(vertexShader)

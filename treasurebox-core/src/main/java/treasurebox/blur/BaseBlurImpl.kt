@@ -7,7 +7,7 @@ import androidx.annotation.ColorInt
 
 /**
  * @author chenjimou
- * @description TODO
+ * @description 高斯模糊实现基类
  * @date 2024/7/2
  */
 internal interface BaseBlurImpl {

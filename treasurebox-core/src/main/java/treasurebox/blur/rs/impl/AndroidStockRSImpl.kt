@@ -11,7 +11,7 @@ import android.renderscript.ScriptIntrinsicBlur
 
 /**
  * @author chenjimou
- * @description TODO
+ * @description RenderScript实现类
  * @date 2024/7/3
  */
 internal class AndroidStockRSImpl : BaseRSImpl {

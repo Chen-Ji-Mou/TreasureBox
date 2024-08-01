@@ -2,35 +2,49 @@
 
 precision mediump float;
 
-const lowp int GAUSSIAN_SAMPLES = 9;
+const int MAX_SIZE = 1024;
+const float PI = 3.14159265358979323846;
+const float E = 2.71828182845904523536;
+const float VARIANCE = 2.0;
 
 uniform sampler2D inputImageTexture;
 
 in highp vec2 texturePosition;
-in highp vec2 blurPositions[GAUSSIAN_SAMPLES];
+in highp vec2 blurPositions[MAX_SIZE];
 
 out vec4 FragColor;
 
-//卷积核
-mat3 kernelMatrix = mat3(
-    0.0947416f, 0.118318f, 0.0947416f,
-    0.118318f, 0.147761f, 0.118318f,
-    0.0947416f, 0.118318f, 0.0947416f
-);
+/**
+ * 计算坐标模糊权重 https://www.ruanyifeng.com/blog/2012/11/gaussian_blur.html
+ */
+float calculateWeight(vec2 position) {
+    return (1.0 / (2.0 * PI * pow(VARIANCE, 2.0))) * pow(E, -((pow(position.x, 2.0) + pow(position.y, 2.0)) / (2.0 * pow(VARIANCE, 2.0))));
+}
 
 void main() {
-    lowp vec4 originColor = texture(inputImageTexture, texturePosition);
+    float matrixSize = pow(3.0 + ((blurRadius - 1.0) * 2.0), 2.0);
+    float positionWeights[matrixSize]; // 坐标模糊权重矩阵
 
-    //卷积处理
-    lowp vec3 sum = texture(inputImageTexture, blurPositions[0]).rgb * kernelMatrix[0][0];
-    sum += texture(inputImageTexture, blurPositions[1]).rgb * kernelMatrix[0][1];
-    sum += texture(inputImageTexture, blurPositions[2]).rgb * kernelMatrix[0][2];
-    sum += texture(inputImageTexture, blurPositions[3]).rgb * kernelMatrix[1][0];
-    sum += texture(inputImageTexture, blurPositions[4]).rgb * kernelMatrix[1][1];
-    sum += texture(inputImageTexture, blurPositions[5]).rgb * kernelMatrix[1][2];
-    sum += texture(inputImageTexture, blurPositions[6]).rgb * kernelMatrix[2][0];
-    sum += texture(inputImageTexture, blurPositions[7]).rgb * kernelMatrix[2][1];
-    sum += texture(inputImageTexture, blurPositions[8]).rgb * kernelMatrix[2][2];
+    // 计算每个坐标点的模糊权重，并累加获取权重总和
+    float totalWeight = 0.0;
+    for (int i = 0; i < matrixSize; i++) {
+        float curPositionWeight = calculateWeight(blurPositions[i]);
+        positionWeights[i] = curPositionWeight;
+        totalWeight += curPositionWeight;
+    }
 
-    FragColor = vec4(sum, originColor.a);
+    // 由于需要坐标点加权平均后等于1，因此每个坐标点的权重需要除以权重总和
+    for (int i = 0; i < matrixSize; i++) {
+        positionWeights[i] = positionWeights[i] / totalWeight;
+    }
+
+    lowp vec4 originTexture = texture(inputImageTexture, texturePosition);
+
+    // 获取坐标点对应的纹理，将纹理做模糊
+    lowp vec3 sum = vec3(0);
+    for (int i = 0; i < matrixSize; i++) {
+        sum += texture(inputImageTexture, blurPositions[i]).rgb * positionWeights[i];
+    }
+
+    FragColor = vec4(sum, originTexture.a);
 }

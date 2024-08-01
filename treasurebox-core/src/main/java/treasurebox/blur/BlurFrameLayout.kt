@@ -20,7 +20,7 @@ import kotlin.math.max
 
 /**
  * @author chenjimou
- * @description TODO
+ * @description 高斯模糊FrameLayout，拥有高斯模糊能力
  * @date 2024/6/18
  */
 class BlurFrameLayout @JvmOverloads constructor(

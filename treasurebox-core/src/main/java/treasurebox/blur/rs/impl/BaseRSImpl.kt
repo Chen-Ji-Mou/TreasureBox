@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 
 /**
  * @author chenjimou
- * @description TODO
+ * @description RenderScript实现基类
  * @date 2024/7/3
  */
 internal interface BaseRSImpl {
