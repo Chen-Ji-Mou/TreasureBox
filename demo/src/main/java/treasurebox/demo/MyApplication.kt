@@ -11,6 +11,6 @@ import treasurebox.monitor.MonitorHelper
 class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        MonitorHelper.startMonitorUIThread()
+//        MonitorHelper.startMonitorUIThread()
     }
 }
