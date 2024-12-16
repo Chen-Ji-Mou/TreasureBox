@@ -40,7 +40,7 @@ dependencies {
 
 def groupName = 'com.github.Chen-Ji-Mou.TreasureBox'
 def artifactName = 'treasurebox-core'
-def versionNumber = '0.0.4'
+def versionNumber = '0.0.5'
 
 publishing {
     publications {
