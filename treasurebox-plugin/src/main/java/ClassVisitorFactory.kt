@@ -16,7 +16,7 @@ abstract class ClassVisitorFactory : AsmClassVisitorFactory<InstrumentationParam
 
     private fun isTargetClass(className: String): Boolean {
         for (clazzName in Constants.PACKAGE_WHITE_LIST) {
-            if (className.startsWith(clazzName)) {
+            if (className.contains(clazzName)) {
                 return false
             }
         }

@@ -9,6 +9,7 @@ class MainActivity : AppCompatActivity() {
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Thread.sleep(1000)
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         binding.preInflateBtn.setOnClickListener {

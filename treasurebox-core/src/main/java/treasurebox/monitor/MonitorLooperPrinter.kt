@@ -1,36 +1,40 @@
 package treasurebox.monitor
 
-import android.util.Log
 import android.util.Printer
-import treasurebox.monitor.MonitorHelper.TAG
 
 /**
  * @author chenjimou
- * @description TODO
  * @date 2024/5/30
  */
 internal class MonitorLooperPrinter private constructor() : Printer {
-    private var mEnterMillis: Long = 0L
+    private var enterMillis: Long = 0L
+    private var blockThreshold: Long = DEFAULT_BLOCK_THRESHOLD
 
     override fun println(log: String?) {
         val logNotNull = log ?: return
         if (logNotNull.startsWith(">>>>>")) {
-            mEnterMillis = System.nanoTime()
+            enterMillis = System.nanoTime()
         } else if (logNotNull.startsWith("<<<<<")) {
             val exitMillis = System.nanoTime()
-            val cost = (exitMillis - mEnterMillis) / 1_000_000
-            if (cost >= BLOCK_THRESHOLD) {
-                Log.w(TAG, "ui thread block appear (spent ${cost}ms over ${BLOCK_THRESHOLD}ms) :")
-                for (stack in StackCache.getStackTrace(mEnterMillis, exitMillis)) {
-                    Log.w(TAG, stack)
+            val cost = (exitMillis - enterMillis) / 1_000_000
+            if (cost >= blockThreshold) {
+                for ((index, stack) in StackCache.getStackTrace(enterMillis, exitMillis).withIndex()) {
+                    if (index == 0) {
+                        MonitorLog.w("ui thread block appear (spent ${cost}ms over ${blockThreshold}ms)")
+                    }
+                    MonitorLog.w(stack)
                 }
             }
-            mEnterMillis = 0L
+            enterMillis = 0L
         }
     }
 
+    fun setBlockThreshold(millis: Long) {
+        blockThreshold = millis
+    }
+
     companion object {
-        private const val BLOCK_THRESHOLD: Long = 1000L
+        private const val DEFAULT_BLOCK_THRESHOLD: Long = 500L
         val instance by lazy(lock = LazyThreadSafetyMode.SYNCHRONIZED) { MonitorLooperPrinter() }
     }
 }

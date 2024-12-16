@@ -5,23 +5,30 @@ import kotlin.math.ceil
 
 /**
  * @author chenjimou
- * @description TODO
+ * @description 用于缓存堆栈数据的单例，由于@see[methodEnter]和@see[methodExit]需要被插桩入外部代码，因此该类不能加internal。外部不能直接调用该类函数。
  * @date 2024/4/18
  */
 object StackCache {
-    private const val STACK_CACHE_SIZE: Int = 1000000
-    private const val STACK_COST_THRESHOLD: Long = 50L
+    private const val STACK_CACHE_SIZE: Int = 5000000
+    private var STACK_COST_THRESHOLD: Long = 50L
     private val stackCacheMap = object : LinkedHashMap<Long, MethodRecord>(
-        ceil(STACK_CACHE_SIZE / 0.75f).toInt() + 1, 0.75f, true
+        STACK_CACHE_SIZE, 0.75f, true
     ) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, MethodRecord>?): Boolean {
             return size > STACK_CACHE_SIZE
         }
     }
 
-    @Synchronized
+    /**
+     * 设置判定堆栈为超时的最低耗时阈值，用于过滤出耗时较大的堆栈
+     */
     @JvmStatic
-    fun getStackTrace(begin: Long, end: Long): MutableList<String> {
+    internal fun setStackCostThreshold(threshold: Long) {
+        STACK_COST_THRESHOLD = threshold
+    }
+
+    @JvmStatic
+    internal fun getStackTrace(begin: Long, end: Long): MutableList<String> {
         val stackTraces = mutableListOf<String>()
 
         // 按时间戳排序并筛选出在时间段内的函数执行记录（MethodRecord）
@@ -134,7 +141,7 @@ object StackCache {
         }
 
         // 如果堆栈信息过少未超过logcat单条日志长度限制（4096）
-        if (stackTraces.isEmpty()) {
+        if (stackTraces.isEmpty() && sb.isNotEmpty()) {
             stackTraces.add(sb.toString())
         }
 

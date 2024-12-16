@@ -10,7 +10,6 @@
     <treasurebox.blur.BlurFrameLayout
         android:id="@+id/blur_overlay"
         android:layout_width="150dp"
-        android:layout_height="150dp"
-        app:blur_radius="25" />
+        android:layout_height="150dp" />
 
 </FrameLayout>

@@ -13,12 +13,10 @@ import android.opengl.GLSurfaceView
 import android.opengl.GLU
 import android.os.Build
 import android.util.AttributeSet
-import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
-import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.annotation.RequiresApi
 import androidx.core.view.isVisible
@@ -83,6 +81,14 @@ internal class GLBlurImpl @JvmOverloads constructor(
     override fun setBlurRadius(radius: Float) {
         Log.d(TAG, "setBlurRadius ${render.isInitialized}")
         render.setBlurRadius(radius)
+        if (render.isInitialized) {
+            renderView.requestRender()
+        }
+    }
+
+    override fun setBlurSamplingRate(rate: Float) {
+        Log.d(TAG, "setBlurSamplingRate ${render.isInitialized}")
+        render.setBlurSamplingRate(rate)
         if (render.isInitialized) {
             renderView.requestRender()
         }
@@ -250,13 +256,11 @@ internal class GLBlurImpl @JvmOverloads constructor(
     }
 
     companion object {
-        private val TAG = this::class.java.simpleName
+        private val TAG = GLBlurImpl::class.java.simpleName
     }
 }
 
 private class GLBlurRender(private val context: Context) : GLSurfaceView.Renderer {
-    private val screenWidth: Float
-    private val screenHeight: Float
     private var imageTextureRef: Int = GLHelper.NO_TEXTURE
     private val position = floatArrayOf(
         -1.0f, -1.0f,
@@ -283,27 +287,18 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
     }
     private var imageTextureId: Int = 0
     private var blurRadiusId = 0
-    private var screenWidthId: Int = 0
-    private var screenHeightId: Int = 0
+    private var blurSamplingRateId = 0
 
     private var bitmap: Bitmap? = null
-    private var blurRadius: Float = 10.0f
+    private var blurRadius: Float = 5.0f
+    private var blurSamplingRate: Float = 2.0f
 
     private val runOnInit = LinkedList<Runnable>()
     private val runOnDraw = LinkedList<Runnable>()
 
-    init {
-        val displayMetrics = DisplayMetrics()
-        (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.getRealMetrics(
-            displayMetrics
-        )
-        screenWidth = displayMetrics.widthPixels.toFloat()
-        screenHeight = displayMetrics.heightPixels.toFloat()
-    }
-
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         val vertexCodeStr = GLHelper.loadRaw(context.resources, R.raw.blur_vertex)
-        val fragmentCodeStr = GLHelper.loadRaw(context.resources, R.raw.blur_fragment)
+        val fragmentCodeStr = GLHelper.loadRaw(context.resources, R.raw.blur_fragment_2)
 
         programId = GLHelper.loadProgram(vertexCodeStr, fragmentCodeStr)
 
@@ -313,8 +308,7 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
         texturePositionId = GLES30.glGetAttribLocation(programId, "inputTexturePosition")
         imageTextureId = GLES30.glGetUniformLocation(programId, "inputImageTexture")
         blurRadiusId = GLES30.glGetUniformLocation(programId, "blurRadius")
-        screenWidthId = GLES30.glGetUniformLocation(programId, "screenWidth")
-        screenHeightId = GLES30.glGetUniformLocation(programId, "screenHeight")
+        blurSamplingRateId = GLES30.glGetUniformLocation(programId, "blurSamplingRate")
 
         synchronized(runOnInit) {
             while (!runOnInit.isEmpty()) {
@@ -332,8 +326,6 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
         Log.d(TAG, "onSurfaceChanged $width $height")
 
         GLES30.glViewport(0, 0, width, height)
-        GLES30.glUniform1f(screenWidthId, screenWidth)
-        GLES30.glUniform1f(screenHeightId, screenHeight)
 
         val error = GLES30.glGetError()
         if (error != GLES30.GL_NO_ERROR) {
@@ -401,7 +393,6 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
     }
 
     fun setBlurRadius(radius: Float) {
-        // 最大模糊半径为10像素
         this.blurRadius = if (radius <= 10.0f) radius else 10.0f
         if (!isInitialized) {
             synchronized(runOnInit) {
@@ -418,6 +409,23 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
         }
     }
 
+    fun setBlurSamplingRate(rate: Float) {
+        this.blurSamplingRate = if (rate > 0.0f) rate else 1.0f
+        if (!isInitialized) {
+            synchronized(runOnInit) {
+                if (!runOnInit.contains(setBlurSamplingRateTask)) {
+                    runOnInit.addLast(setBlurSamplingRateTask)
+                }
+            }
+        } else {
+            synchronized(runOnDraw) {
+                if (!runOnDraw.contains(setBlurSamplingRateTask)) {
+                    runOnDraw.addLast(setBlurSamplingRateTask)
+                }
+            }
+        }
+    }
+
     fun onResume() {
         synchronized(runOnInit) {
             if (!runOnInit.contains(setBitmapTextureTask)) {
@@ -425,6 +433,9 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
             }
             if (!runOnInit.contains(setBlurRadiusTask)) {
                 runOnInit.addLast(setBlurRadiusTask)
+            }
+            if (!runOnInit.contains(setBlurSamplingRateTask)) {
+                runOnInit.addLast(setBlurSamplingRateTask)
             }
         }
     }
@@ -436,8 +447,7 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
         texturePositionId = 0
         imageTextureId = 0
         blurRadiusId = 0
-        screenWidthId = 0
-        screenHeightId = 0
+        blurSamplingRateId = 0
     }
 
     fun release() {
@@ -463,7 +473,11 @@ private class GLBlurRender(private val context: Context) : GLSurfaceView.Rendere
         GLES30.glUniform1f(blurRadiusId, blurRadius)
     }
 
+    private val setBlurSamplingRateTask = Runnable {
+        GLES30.glUniform1f(blurSamplingRateId, blurSamplingRate)
+    }
+
     companion object {
-        private val TAG = this::class.java.simpleName
+        private val TAG = GLBlurRender::class.java.simpleName
     }
 }

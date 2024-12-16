@@ -105,6 +105,10 @@ internal class RSBlurImpl @JvmOverloads constructor(
         refreshBlurOverlay()
     }
 
+    override fun setBlurSamplingRate(rate: Float) {
+        // 无效实现，RenderScript无法设置采样率
+    }
+
     override fun setBlurOverlayColor(color: Int) {
         mOverlayPaint.color = color
         invalidate()

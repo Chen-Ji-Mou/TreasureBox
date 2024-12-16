@@ -14,6 +14,7 @@ internal interface BaseBlurImpl {
     fun init(parent: ViewGroup)
     fun setBlurBitmap(bitmap: Bitmap)
     fun setBlurRadius(radius: Float)
+    fun setBlurSamplingRate(rate: Float)
     fun setBlurOverlayColor(@ColorInt color: Int)
     fun refreshBlurOverlay()
     fun setCornerRadius(radius: Float)

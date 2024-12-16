@@ -18,7 +18,7 @@ import java.nio.IntBuffer
  * @date 2024/7/2
  */
 internal object GLHelper {
-    private val TAG = this::class.java.simpleName
+    private val TAG = GLHelper::class.java.simpleName
     const val NO_TEXTURE: Int = -1
 
     fun loadAsset(res: Resources, path: String?): String {
